@@ -1,0 +1,9 @@
+# Archivos generados por Maven
+/target/
+*.class
+
+# Archivos temporales y del entorno
+.idea/
+*.iml
+*.log
+nbproject/private/
