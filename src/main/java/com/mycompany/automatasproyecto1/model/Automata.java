@@ -6,130 +6,196 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Representa un autómata finito.
- */
+
 public class Automata {
 
-    // Conjunto de estados Q
-    private List<Estado> estados;
-
-    // Alfabeto Σ
-    private Set<String> alfabeto;
-
-    // Conjunto de transiciones δ
-    private List<Transicion> transiciones;
-
-    // Estado inicial q0
+    private final List<Estado> estados;
+    private final Set<String> alfabeto;
+    private final List<Transicion> transiciones;
     private Estado estadoInicial;
+    private final Set<Estado> estadosAceptacion;
 
-    // Conjunto de estados de aceptación F
-    private Set<Estado> estadosAceptacion;
-
-    /**
-     * Constructor del autómata.
-     */
     public Automata() {
         estados = new ArrayList<>();
         alfabeto = new HashSet<>();
         transiciones = new ArrayList<>();
         estadosAceptacion = new HashSet<>();
+        estadoInicial = null;
     }
 
-    /**
-     * Agrega un estado al autómata.
-     */
+    // ---------------- ESTADOS ----------------
+
     public void agregarEstado(Estado estado) {
+        if (estado == null) {
+            throw new IllegalArgumentException(
+                    "El estado no puede ser nulo.");
+        }
+
         if (!estados.contains(estado)) {
             estados.add(estado);
         }
     }
 
-    /**
-     * Elimina un estado del autómata.
-     */
     public void eliminarEstado(Estado estado) {
-        estados.remove(estado);
+        if (estado == null || !estados.contains(estado)) {
+            return;
+        }
+
+        // Eliminar todas las transiciones relacionadas con el estado.
+        transiciones.removeIf(t ->
+                t.getOrigen() == estado
+                || t.getDestino() == estado);
+
         estadosAceptacion.remove(estado);
+        estado.setAceptacion(false);
 
         if (estadoInicial == estado) {
+            estado.setInicial(false);
             estadoInicial = null;
         }
 
-        // Eliminar también las transiciones relacionadas
-        transiciones.removeIf(transicion ->
-                transicion.getOrigen() == estado
-                || transicion.getDestino() == estado);
+        estados.remove(estado);
+
+        // Recalcular el alfabeto después de eliminar transiciones.
+        actualizarAlfabeto();
     }
 
-    /**
-     * Agrega un símbolo al alfabeto.
-     */
+    // ---------------- ALFABETO ----------------
+
     public void agregarSimbolo(String simbolo) {
         if (simbolo != null && !simbolo.isBlank()) {
-            alfabeto.add(simbolo);
+            alfabeto.add(simbolo.trim());
         }
     }
 
-    /**
-     * Agrega una transición.
-     */
-    public void agregarTransicion(Transicion transicion) {
-        if (transicion != null) {
-            transiciones.add(transicion);
+    private void actualizarAlfabeto() {
+        alfabeto.clear();
 
-            // El símbolo de la transición pasa a formar parte del alfabeto
-            agregarSimbolo(transicion.getSimbolo());
-        }
-    }
+        for (Transicion transicion : transiciones) {
+            String simbolo = transicion.getSimbolo();
 
-    /**
-     * Elimina una transición.
-     */
-    public void eliminarTransicion(Transicion transicion) {
-        transiciones.remove(transicion);
-    }
-
-    /**
-     * Establece el estado inicial.
-     */
-    public void setEstadoInicial(Estado estado) {
-        if (estado != null && estados.contains(estado)) {
-
-            // Si había otro estado inicial, deja de ser inicial
-            if (estadoInicial != null) {
-                estadoInicial.setInicial(false);
+            if (simbolo != null && !simbolo.isBlank()) {
+                alfabeto.add(simbolo);
             }
+        }
+    }
 
-            estadoInicial = estado;
+    // ---------------- TRANSICIONES ----------------
+
+    public void agregarTransicion(Transicion transicion) {
+        if (transicion == null) {
+            throw new IllegalArgumentException(
+                    "La transicion no puede ser nula.");
+        }
+
+        Estado origen = transicion.getOrigen();
+        Estado destino = transicion.getDestino();
+        String simbolo = transicion.getSimbolo();
+
+        if (origen == null || destino == null) {
+            throw new IllegalArgumentException(
+                    "Debes indicar el origen y destino.");
+        }
+
+        if (!estados.contains(origen)
+                || !estados.contains(destino)) {
+            throw new IllegalArgumentException(
+                    "Los estados deben pertenecer al automata.");
+        }
+
+        if (simbolo == null || simbolo.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El simbolo no puede estar vacio.");
+        }
+
+        simbolo = simbolo.trim();
+        transicion.setSimbolo(simbolo);
+
+        for (Transicion existente : transiciones) {
+            boolean mismoOrigen =
+                    existente.getOrigen() == origen;
+            boolean mismoSimbolo =
+                    existente.getSimbolo().equals(simbolo);
+
+            if (mismoOrigen && mismoSimbolo) {
+                throw new IllegalArgumentException(
+                        "El estado " + origen.getNombre()
+                        + " ya tiene una transicion con el simbolo "
+                        + simbolo + ".");
+            }
+        }
+
+        transiciones.add(transicion);
+        actualizarAlfabeto();
+    }
+
+    public void eliminarTransicion(Transicion transicion) {
+        if (transicion != null && transiciones.remove(transicion)) {
+            actualizarAlfabeto();
+        }
+    }
+
+   
+    public Transicion buscarTransicion(
+            Estado origen, String simbolo) {
+
+        if (origen == null || simbolo == null) {
+            return null;
+        }
+
+        for (Transicion transicion : transiciones) {
+            if (transicion.getOrigen() == origen
+                    && transicion.getSimbolo().equals(simbolo)) {
+                return transicion;
+            }
+        }
+
+        return null;
+    }
+
+    // ---------------- ESTADO INICIAL ----------------
+
+    public void setEstadoInicial(Estado estado) {
+        if (estado != null && !estados.contains(estado)) {
+            throw new IllegalArgumentException(
+                    "El estado inicial debe pertenecer al automata.");
+        }
+
+        if (estadoInicial != null) {
+            estadoInicial.setInicial(false);
+        }
+
+        estadoInicial = estado;
+
+        if (estadoInicial != null) {
             estadoInicial.setInicial(true);
         }
     }
 
-    /**
-     * Agrega un estado de aceptación.
-     */
+    // ---------------- ESTADOS DE ACEPTACION ----------------
+
     public void agregarEstadoAceptacion(Estado estado) {
-        if (estado != null && estados.contains(estado)) {
-            estadosAceptacion.add(estado);
-            estado.setAceptacion(true);
+        if (estado == null || !estados.contains(estado)) {
+            throw new IllegalArgumentException(
+                    "El estado final debe pertenecer al automata.");
         }
+
+        estadosAceptacion.add(estado);
+        estado.setAceptacion(true);
     }
 
-    /**
-     * Elimina un estado de aceptación.
-     */
     public void eliminarEstadoAceptacion(Estado estado) {
-        estadosAceptacion.remove(estado);
-
         if (estado != null) {
+            estadosAceptacion.remove(estado);
             estado.setAceptacion(false);
         }
     }
 
-    // ==========================
-    // GETTERS
-    // ==========================
+    public boolean esEstadoAceptacion(Estado estado) {
+        return estadosAceptacion.contains(estado);
+    }
+
+    // ---------------- CONSULTAS ----------------
 
     public List<Estado> getEstados() {
         return estados;
