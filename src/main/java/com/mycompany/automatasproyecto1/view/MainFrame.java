@@ -31,6 +31,8 @@ import java.awt.event.MouseEvent;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.awt.Font;
+import java.awt.Color;
 
 /**
  * Ventana principal del editor de autómatas.
@@ -40,6 +42,7 @@ public class MainFrame extends JFrame {
     private JPanel panelHerramientas;
     private JPanel panelLienzo;
     private JPanel panelSimulacion;
+    private JLabel etiquetaContadores;
 
     private mxGraph graph;
     private mxGraphComponent graphComponent;
@@ -361,7 +364,13 @@ public class MainFrame extends JFrame {
         panelSimulacion.add(
                 etiquetaResultado
         );
+        // Contador automático de estados y transiciones
+        etiquetaContadores = new JLabel();
+        etiquetaContadores.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        etiquetaContadores.setForeground(new Color(88, 60, 150));
 
+        panelSimulacion.add(etiquetaContadores);
+        actualizarContadores();
         
         // BOTÓN SIMULAR
         
@@ -437,6 +446,7 @@ public class MainFrame extends JFrame {
         }
 
         contadorEstados++;
+        actualizarContadores();
 
         modoAgregarEstado = false;
 
@@ -1189,6 +1199,16 @@ public class MainFrame extends JFrame {
                 new Cursor(
                         Cursor.DEFAULT_CURSOR
                 )
+        );
+    }
+    // Actualiza la cantidad de estados y transiciones del autómata
+    private void actualizarContadores() {
+        int cantidadEstados = automata.getEstados().size();
+        int cantidadTransiciones = automata.getTransiciones().size();
+
+        etiquetaContadores.setText(
+                "Estados: " + cantidadEstados +
+                        " | Transiciones: " + cantidadTransiciones
         );
     }
 }
